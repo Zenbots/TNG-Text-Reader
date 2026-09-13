@@ -233,6 +233,28 @@
   .live-indicator .led { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
   .live-indicator.on .led { background: var(--red); box-shadow: 0 0 6px var(--red); }
 
+  /* ── Screen ── */
+  .screen-frame {
+    position: relative;
+    background: #000;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    max-width: 100%;
+    aspect-ratio: 16 / 9;
+    margin: 0 auto 4px;
+    cursor: crosshair;
+    touch-action: none;
+    user-select: none;
+  }
+  .screen-frame video { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
+  .region-box {
+    position: absolute;
+    border: 2px solid var(--orange);
+    background: rgba(255, 156, 52, .15);
+    pointer-events: none;
+  }
+
   /* ── Reading view ── */
   #readingView {
     background: #0b0c14;
@@ -303,6 +325,7 @@
           <button class="tab-btn" data-tab="pdf">Upload PDF</button>
           <button class="tab-btn" data-tab="image">Upload Image</button>
           <button class="tab-btn" data-tab="camera">Camera</button>
+          <button class="tab-btn" data-tab="screen">Screen</button>
         </div>
 
         <div class="tab-panel active" id="tab-paste">
@@ -323,9 +346,6 @@
             Text is recognized on-device with OCR — your image is never uploaded anywhere.
             <input type="file" id="imageInput" accept="image/*" />
           </div>
-          <div class="row">
-            <button class="btn btn-outline" id="screenCaptureBtn">🖥 Capture Screen</button>
-          </div>
         </div>
 
         <div class="tab-panel" id="tab-camera">
@@ -343,6 +363,28 @@
             keeps sampling the camera every few seconds and speaks new text aloud as it recognizes it —
             handy for a page, a sign, or a label, hands-free. It works best with clear, well-lit,
             reasonably large text held steady for a moment; small or blurry print may be missed.
+          </p>
+        </div>
+
+        <div class="tab-panel" id="tab-screen">
+          <div class="screen-frame" id="screenFrame">
+            <video id="screenVideo" autoplay playsinline muted></video>
+            <div class="region-box" id="screenSelection" hidden></div>
+          </div>
+          <div class="live-indicator" id="screenLiveIndicator"><span class="led"></span><span id="screenLiveIndicatorText">Not sharing</span></div>
+          <div class="row">
+            <button class="btn btn-orange" id="shareScreenBtn">🖥 Share Screen</button>
+            <button class="btn btn-outline" id="stopShareBtn" disabled>Stop Sharing</button>
+            <button class="btn btn-violet" id="captureFullScreenBtn" disabled>Read Whole Screen</button>
+            <button class="btn btn-blue" id="screenLiveScanBtn" disabled>👁 Start Reading Box</button>
+          </div>
+          <p class="note">
+            Click <strong>Share Screen</strong> and choose a screen, window, or tab. Then drag a box
+            over the preview above to outline the area you want read aloud — <strong>Start Reading
+            Box</strong> samples just that area every few seconds and speaks new text as it recognizes
+            it, so you can point it at a document, subtitles, or anything else and it keeps reading as
+            the content changes. Draw a new box any time to move where it's watching.
+            <strong>Read Whole Screen</strong> instead OCRs the entire shared frame once into the text box.
           </p>
         </div>
 
@@ -400,7 +442,7 @@
   </main>
 
   <footer>
-    <span>COMPUTER TEXT READER v1.1</span>
+    <span>COMPUTER TEXT READER v1.2</span>
     <span id="engineStatus">Speech engine: checking…</span>
   </footer>
 
@@ -419,7 +461,6 @@
   const pdfInput = document.getElementById('pdfInput');
   const imageDropzone = document.getElementById('imageDropzone');
   const imageInput = document.getElementById('imageInput');
-  const screenCaptureBtn = document.getElementById('screenCaptureBtn');
   const tabBtns = document.querySelectorAll('.tab-btn');
   const tabPanels = document.querySelectorAll('.tab-panel');
 
@@ -430,6 +471,16 @@
   const liveScanBtn = document.getElementById('liveScanBtn');
   const liveIndicator = document.getElementById('liveIndicator');
   const liveIndicatorText = document.getElementById('liveIndicatorText');
+
+  const screenFrame = document.getElementById('screenFrame');
+  const screenVideo = document.getElementById('screenVideo');
+  const screenSelection = document.getElementById('screenSelection');
+  const shareScreenBtn = document.getElementById('shareScreenBtn');
+  const stopShareBtn = document.getElementById('stopShareBtn');
+  const captureFullScreenBtn = document.getElementById('captureFullScreenBtn');
+  const screenLiveScanBtn = document.getElementById('screenLiveScanBtn');
+  const screenLiveIndicator = document.getElementById('screenLiveIndicator');
+  const screenLiveIndicatorText = document.getElementById('screenLiveIndicatorText');
 
   const voiceSelect = document.getElementById('voiceSelect');
   const rateRange = document.getElementById('rateRange');
@@ -619,59 +670,6 @@
     }
   }
 
-  // ── Screen capture (single frame, then the share stops) ──
-  screenCaptureBtn.addEventListener('click', captureScreen);
-
-  async function captureScreen() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-      setStatus('Screen capture is not supported in this browser.', true);
-      return;
-    }
-    let stream;
-    try {
-      stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-    } catch (err) {
-      setStatus('Screen capture was cancelled or denied.', true);
-      return;
-    }
-    setStatus('Reading screen capture (OCR)…');
-    try {
-      const track = stream.getVideoTracks()[0];
-      const canvas = await frameFromTrack(track);
-      stream.getTracks().forEach(t => t.stop());
-      const text = await ocrImageSource(canvas);
-      if (!text) { setStatus('No text was detected in that screen capture.', true); return; }
-      appendTextToInput(text);
-      setStatus('Extracted text from screen capture.');
-      tabBtns[0].click();
-    } catch (err) {
-      stream.getTracks().forEach(t => t.stop());
-      console.error(err);
-      setStatus(ocrErrorMessage(err), true);
-    }
-  }
-
-  async function frameFromTrack(track) {
-    if (window.ImageCapture) {
-      try {
-        const capture = new ImageCapture(track);
-        const bitmap = await capture.grabFrame();
-        const canvas = document.createElement('canvas');
-        canvas.width = bitmap.width;
-        canvas.height = bitmap.height;
-        canvas.getContext('2d').drawImage(bitmap, 0, 0);
-        return canvas;
-      } catch (e) { /* fall through to the video-element approach */ }
-    }
-    const video = document.createElement('video');
-    video.srcObject = new MediaStream([track]);
-    video.muted = true;
-    video.playsInline = true;
-    await video.play();
-    await new Promise(r => setTimeout(r, 200));
-    return drawVideoFrameToCanvas(video, 2000);
-  }
-
   function drawVideoFrameToCanvas(video, maxWidth) {
     const vw = video.videoWidth || maxWidth;
     const vh = video.videoHeight || maxWidth;
@@ -790,7 +788,7 @@
     try {
       const canvas = drawVideoFrameToCanvas(cameraVideo, 900);
       const text = await ocrImageSource(canvas);
-      processLiveText(text);
+      processLiveText(text, seenLiveSentences, 'Live scan running…', () => liveScanActive);
     } catch (err) {
       console.error(err);
       setStatus(ocrErrorMessage(err), true);
@@ -800,14 +798,14 @@
     }
   }
 
-  function processLiveText(text) {
-    if (!liveScanActive) return;
+  function processLiveText(text, seenSet, idleMsg, isStillActive) {
+    if (!isStillActive()) return;
     const sentences = splitIntoSentences(text);
     let added = false;
     sentences.forEach(s => {
       const norm = s.toLowerCase().replace(/\s+/g, ' ').trim();
-      if (norm.length < 4 || seenLiveSentences.has(norm)) return;
-      seenLiveSentences.add(norm);
+      if (norm.length < 4 || seenSet.has(norm)) return;
+      seenSet.add(norm);
       appendLiveChunk(s);
       added = true;
     });
@@ -820,7 +818,7 @@
         speakNext();
       }
     } else {
-      setStatus('Live scan running…');
+      setStatus(idleMsg);
     }
   }
 
@@ -834,6 +832,206 @@
     span.dataset.i = String(i);
     span.textContent = text;
     readingView.appendChild(span);
+  }
+
+  // ── Screen (share, drag-to-select a region, read whole screen or watch the box) ──
+  let screenStream = null;
+  let selectedRegion = null; // { x, y, w, h } in the video's natural pixel coordinates
+  let screenLiveActive = false;
+  let screenLiveTimer = null;
+  let screenLiveBusy = false;
+  let seenScreenSentences = new Set();
+
+  shareScreenBtn.addEventListener('click', startScreenShare);
+  stopShareBtn.addEventListener('click', stopScreenShare);
+  captureFullScreenBtn.addEventListener('click', captureFullScreen);
+  screenLiveScanBtn.addEventListener('click', () => {
+    if (screenLiveActive) stopScreenLiveScan(); else startScreenLiveScan();
+  });
+
+  async function startScreenShare() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+      setStatus('Screen capture is not supported in this browser.', true);
+      return;
+    }
+    try {
+      screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      screenVideo.srcObject = screenStream;
+      await screenVideo.play();
+      screenStream.getVideoTracks()[0].addEventListener('ended', stopScreenShare);
+      setScreenUIState(true);
+      setStatus('Screen sharing started — drag a box over the preview to pick an area.');
+    } catch (err) {
+      setStatus('Screen capture was cancelled or denied.', true);
+    }
+  }
+
+  function stopScreenShare() {
+    stopScreenLiveScan();
+    if (screenStream) {
+      screenStream.getTracks().forEach(t => t.stop());
+      screenStream = null;
+    }
+    screenVideo.srcObject = null;
+    selectedRegion = null;
+    screenSelection.hidden = true;
+    setScreenUIState(false);
+    setStatus('Screen sharing stopped.');
+  }
+
+  function setScreenUIState(active) {
+    shareScreenBtn.disabled = active;
+    stopShareBtn.disabled = !active;
+    captureFullScreenBtn.disabled = !active;
+    screenLiveScanBtn.disabled = !active || !selectedRegion;
+    screenLiveIndicatorText.textContent = active ? 'Sharing' : 'Not sharing';
+  }
+
+  async function captureFullScreen() {
+    if (!screenStream) { setStatus('Share your screen first.', true); return; }
+    setStatus('Reading screen (OCR)…');
+    try {
+      const canvas = drawVideoFrameToCanvas(screenVideo, 2000);
+      const text = await ocrImageSource(canvas);
+      if (!text) { setStatus('No text was detected on screen.', true); return; }
+      appendTextToInput(text);
+      setStatus('Extracted text from screen.');
+      tabBtns[0].click();
+    } catch (err) {
+      console.error(err);
+      setStatus(ocrErrorMessage(err), true);
+    }
+  }
+
+  // ── Drag-to-select a region over the screen preview ──
+  let dragging = false;
+  let dragStart = null;
+
+  function frameRelativePoint(evt) {
+    const rect = screenFrame.getBoundingClientRect();
+    const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+    const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+    return { x: clientX - rect.left, y: clientY - rect.top };
+  }
+
+  function rectFromPoints(a, b) {
+    return { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(a.x - b.x), h: Math.abs(a.y - b.y) };
+  }
+
+  function updateSelectionVisual(a, b) {
+    const r = rectFromPoints(a, b);
+    screenSelection.style.left = r.x + 'px';
+    screenSelection.style.top = r.y + 'px';
+    screenSelection.style.width = r.w + 'px';
+    screenSelection.style.height = r.h + 'px';
+  }
+
+  function onDragStart(evt) {
+    if (!screenStream) return;
+    evt.preventDefault();
+    dragging = true;
+    dragStart = frameRelativePoint(evt);
+    screenSelection.hidden = false;
+    updateSelectionVisual(dragStart, dragStart);
+  }
+  function onDragMove(evt) {
+    if (!dragging) return;
+    evt.preventDefault();
+    updateSelectionVisual(dragStart, frameRelativePoint(evt));
+  }
+  function onDragEnd(evt) {
+    if (!dragging) return;
+    dragging = false;
+    const rect = rectFromPoints(dragStart, frameRelativePoint(evt));
+    if (rect.w < 12 || rect.h < 12) {
+      screenSelection.hidden = true;
+      selectedRegion = null;
+      screenLiveScanBtn.disabled = true;
+      return;
+    }
+    selectedRegion = containerRectToVideoRect(rect, screenVideo);
+    screenLiveScanBtn.disabled = !screenStream || !selectedRegion;
+    setStatus('Region selected — click "Start Reading Box" to begin.');
+  }
+
+  screenFrame.addEventListener('mousedown', onDragStart);
+  window.addEventListener('mousemove', onDragMove);
+  window.addEventListener('mouseup', onDragEnd);
+  screenFrame.addEventListener('touchstart', onDragStart, { passive: false });
+  window.addEventListener('touchmove', onDragMove, { passive: false });
+  window.addEventListener('touchend', onDragEnd);
+
+  function getVideoDisplayRect(video) {
+    const elW = video.clientWidth, elH = video.clientHeight;
+    const vw = video.videoWidth, vh = video.videoHeight;
+    if (!vw || !vh) return { x: 0, y: 0, w: elW, h: elH };
+    const elRatio = elW / elH, vRatio = vw / vh;
+    let w, h, x, y;
+    if (vRatio > elRatio) { w = elW; h = elW / vRatio; x = 0; y = (elH - h) / 2; }
+    else { h = elH; w = elH * vRatio; y = 0; x = (elW - w) / 2; }
+    return { x, y, w, h };
+  }
+
+  function containerRectToVideoRect(rect, video) {
+    const disp = getVideoDisplayRect(video);
+    const x0 = Math.max(rect.x, disp.x), y0 = Math.max(rect.y, disp.y);
+    const x1 = Math.min(rect.x + rect.w, disp.x + disp.w), y1 = Math.min(rect.y + rect.h, disp.y + disp.h);
+    const w = Math.max(0, x1 - x0), h = Math.max(0, y1 - y0);
+    const scaleX = video.videoWidth / disp.w, scaleY = video.videoHeight / disp.h;
+    return {
+      x: Math.round((x0 - disp.x) * scaleX),
+      y: Math.round((y0 - disp.y) * scaleY),
+      w: Math.round(w * scaleX),
+      h: Math.round(h * scaleY)
+    };
+  }
+
+  function cropVideoFrame(video, region) {
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, region.w);
+    canvas.height = Math.max(1, region.h);
+    canvas.getContext('2d').drawImage(video, region.x, region.y, region.w, region.h, 0, 0, canvas.width, canvas.height);
+    return canvas;
+  }
+
+  function startScreenLiveScan() {
+    if (!screenStream || !selectedRegion) { setStatus('Share your screen and draw a box first.', true); return; }
+    screenLiveActive = true;
+    seenScreenSentences = new Set();
+    chunks = [];
+    currentIndex = 0;
+    synth.cancel();
+    readingView.innerHTML = '';
+    screenLiveScanBtn.textContent = '■ Stop Reading Box';
+    screenLiveIndicator.classList.add('on');
+    screenLiveIndicatorText.textContent = 'Watching selected area…';
+    setStatus('Reading the selected area…');
+    scanScreenRegionOnce();
+    screenLiveTimer = setInterval(scanScreenRegionOnce, 3000);
+  }
+
+  function stopScreenLiveScan() {
+    screenLiveActive = false;
+    if (screenLiveTimer) { clearInterval(screenLiveTimer); screenLiveTimer = null; }
+    screenLiveScanBtn.textContent = '👁 Start Reading Box';
+    screenLiveIndicator.classList.remove('on');
+    screenLiveIndicatorText.textContent = screenStream ? 'Sharing' : 'Not sharing';
+  }
+
+  async function scanScreenRegionOnce() {
+    if (!screenLiveActive || screenLiveBusy || !selectedRegion) return;
+    screenLiveBusy = true;
+    try {
+      const canvas = cropVideoFrame(screenVideo, selectedRegion);
+      const text = await ocrImageSource(canvas);
+      processLiveText(text, seenScreenSentences, 'Watching selected area…', () => screenLiveActive);
+    } catch (err) {
+      console.error(err);
+      setStatus(ocrErrorMessage(err), true);
+      stopScreenLiveScan();
+    } finally {
+      screenLiveBusy = false;
+    }
   }
 
   // ── Voices ──
@@ -1004,7 +1202,7 @@
 
   function speakNext() {
     if (currentIndex >= chunks.length) {
-      if (liveScanActive) { speaking = false; setTransportState('idle'); stopKeepAlive(); return; }
+      if (liveScanActive || screenLiveActive) { speaking = false; setTransportState('idle'); stopKeepAlive(); return; }
       finishReading();
       return;
     }
@@ -1033,6 +1231,7 @@
     if (!text) { setStatus('There is no text to read yet.', true); return; }
     if (!synth) { setStatus('Speech synthesis is not supported in this browser.', true); return; }
     if (liveScanActive) stopLiveScan();
+    if (screenLiveActive) stopScreenLiveScan();
     synth.cancel();
     chunks = splitIntoSentences(text);
     if (!chunks.length) { setStatus('Nothing readable was found in that text.', true); return; }
@@ -1064,6 +1263,7 @@
 
   stopBtn.addEventListener('click', () => {
     if (liveScanActive) stopLiveScan();
+    if (screenLiveActive) stopScreenLiveScan();
     synth.cancel();
     speaking = false;
     stopKeepAlive();
@@ -1076,6 +1276,7 @@
   window.addEventListener('beforeunload', () => {
     if (synth) synth.cancel();
     if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
+    if (screenStream) screenStream.getTracks().forEach(t => t.stop());
     if (ocrWorker) ocrWorker.terminate();
   });
 
