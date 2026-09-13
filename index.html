@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Computer // Text Reader</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#05060a" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Computer" />
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS3GwHAAAEXklEQVR42u3dsW3cQBAF0E0MuADX6X4MuALX4p7OmTNDksXdnZn/gp8pOM78JxIixVtfvn57iaRmGYIAIAKACAAiAIgAIAKACAAiAIgAIAKACAAiAIgAIAKA/E9eP9ffmAcAY8v9VMwVgLjSgwEAAEAAAAAMAAAAAwAAwAAAADAAAAEIAAAAAgAAgABAGwD/+jl/SgVAip5lAJBjpa0MAgApB+A0CACkNIBTGACQ8gA8og0AACAAAMB+CABIKwA7IAAg7QA8DQEAaQngSQgASFsASQgAACAaAgAARCMAAIBjEAAAoP0lAwASDWAaAgAAiEYAAADRCAAA4BoEAAAY81BZVwQAABCNAIA38vvH6905AeAjn+etz1QFAQAARAO4iQAAAKIRAABA9KUQAABEIwAAgGgEAABQDgEAAEQDOIkAAACiEQAAQPSlEAAARJ8FAAAg+iwAAADRCAAAAAABIBUBAAAAIACkIgAgFMD3X68PBQAAABj4r6IAANAGwA4EAABwFcDts8DadUA3S/vkcgEA4NMHAwAAVRGs0wcCAADRAE5gAACAKwCqPN8BQD8At/oDAAAAAAAAAINe/gpATwA3egQAAAAAAAAAAAAAQP/yA9AbwOk+AQAAAAAAAAAAAACw9wN7GhSAap0CAAAAJl3+AJAF4LO9AgAAAAAAAAAAAAAAAAAAAAAAAAAAAICG9wAAmAHgVLcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwH0AANwHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABvhQDAa1EAAAAAb4YDwJvhAAAAAAAAAAAAAFIA+IYYAHxFEgAAAAAAAAAAAEAegEoIAPBN8QAAAAAAAABwEEAVBAD0A3CrNwAAAMDEy6CnAgAA0QgA2A/gZl8AAACAmwdUHQEAewHc7sqaqBqA932mCrndkzVVNgD1AVToCAAAAAABAInlBwAAAFIOFADlBwAAAE4D6I4AgNldKAmgEgIAZvdgpcoHwG//0gCqIABg9v6XIQCQvPflNAhA8s6X3wYAJO97GQoAyXtehgNA8n5bAbgxJADm7vYqgC6DAmBu+a8D6H6XOPltGVP22RJAx5IkAOi4y2VwACTvcBkgAMm7WxMG2aE06airHuMyVACS97QMF4Dk/SxDBiB5LyMBVBx22lkMgAIDrzT0FLzdUK/J15uVht+1LJPL3wLAlEVMBtv5r1ltAHRfSqfipJS/HYCnlnNjQdOQTrmT3Q7Ak4s6uawpOKc9xtESwNNLO7G47iinPsTXFsCOBe5cYleM0x/hbg2g00K7IUz4550xAHYt98kl3ypV9bkA0AhCwpOaKcUfC+BEASbetEos/1gAN4pxsiBTjwuAIWX5TJm6fV4AQBibhF7EAABB8QEAQfEBAEHxAYjHYN8AxGGwVwDiMNgfAHEY7AmAKBD2AIBHtAUAEQBEABABQAQAEQBEABABQAQAEQBEABAADEEAEAFABACRpPwBJkq2S9CBs/oAAAAASUVORK5CYII=" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #05060a;
+    --panel: #12131c;
+    --panel2: #191b28;
+    --border: #2a2d40;
+    --orange: #ff9c34;
+    --orange-dim: #6b4a1c;
+    --violet: #cc99ff;
+    --violet-dim: #4a3a66;
+    --blue: #7fb2ff;
+    --blue-dim: #2c4470;
+    --red: #ff6b6b;
+    --text: #e8eaf6;
+    --text-muted: #8890b5;
+    --radius-lg: 26px;
+    --radius-sm: 8px;
+  }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-bottom: 40px;
+  }
+
+  h1, h2, .lcars-label { font-family: 'Antonio', -apple-system, sans-serif; text-transform: uppercase; }
+
+  /* ── Header (LCARS elbow) ── */
+  .lcars-header {
+    width: 100%;
+    max-width: 960px;
+    margin-top: 18px;
+    padding: 0 16px;
+  }
+  .elbow-top {
+    display: flex;
+    align-items: stretch;
+    height: 56px;
+    gap: 6px;
+  }
+  .elbow-cap {
+    width: 70px;
+    background: var(--orange);
+    border-radius: 34px 0 0 0;
+  }
+  .elbow-bar {
+    flex: 1;
+    background: var(--orange);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 22px;
+    border-radius: 0 22px 0 0;
+  }
+  .elbow-bar h1 {
+    color: #14100a;
+    font-size: 1.7rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+  .sub-bar {
+    display: flex;
+    gap: 6px;
+    height: 16px;
+    margin-top: 6px;
+  }
+  .sub-bar .a { width: 70px; background: var(--violet); border-radius: 0 0 0 10px; }
+  .sub-bar .b { flex: 1; background: var(--blue); }
+  .sub-bar .c { width: 120px; background: var(--violet); border-radius: 0 0 10px 0; }
+  .tagline {
+    font-size: .74rem;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+    text-align: right;
+    margin-top: 8px;
+    padding-right: 6px;
+  }
+
+  /* ── Layout ── */
+  main {
+    width: 100%;
+    max-width: 960px;
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 20px;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+  }
+  .panel-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: var(--panel2);
+    border-bottom: 1px solid var(--border);
+  }
+  .panel-head .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .panel-head h2 { font-size: 1rem; letter-spacing: .6px; color: var(--text); }
+  .panel-body { padding: 16px; }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; }
+  .tab-btn {
+    flex: 1;
+    min-width: 110px;
+    padding: 9px 10px;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: .82rem;
+    font-weight: 600;
+    letter-spacing: .4px;
+  }
+  .tab-btn.active { background: var(--orange); color: #14100a; border-color: var(--orange); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  textarea#textInput {
+    width: 100%;
+    min-height: 180px;
+    resize: vertical;
+    background: #0b0c14;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    font-size: .92rem;
+    line-height: 1.5;
+    font-family: inherit;
+  }
+  textarea#textInput:focus { outline: 1px solid var(--blue); }
+
+  .dropzone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-sm);
+    padding: 30px 16px;
+    text-align: center;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .dropzone.drag { border-color: var(--orange); background: rgba(255,156,52,.06); }
+  .dropzone strong { color: var(--text); }
+  .dropzone input[type=file] { display: none; }
+
+  .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; align-items: center; }
+  .meta { font-size: .76rem; color: var(--text-muted); }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 16px; border-radius: 20px;
+    border: 1px solid var(--border); background: var(--panel2);
+    color: var(--text); font-size: .82rem; font-weight: 600; letter-spacing: .3px;
+    cursor: pointer; transition: filter .15s;
+  }
+  .btn:hover { filter: brightness(1.15); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-orange { background: var(--orange); border-color: var(--orange); color: #14100a; }
+  .btn-violet { background: var(--violet); border-color: var(--violet); color: #1c1428; }
+  .btn-blue { background: var(--blue); border-color: var(--blue); color: #0c1a33; }
+  .btn-outline { background: transparent; }
+
+  /* ── Controls ── */
+  .control { margin-bottom: 14px; }
+  .control label {
+    display: flex; justify-content: space-between;
+    font-size: .78rem; color: var(--text-muted); margin-bottom: 6px;
+    letter-spacing: .4px; text-transform: uppercase;
+  }
+  select, input[type=range] { width: 100%; }
+  select {
+    background: #0b0c14; color: var(--text); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 9px 10px; font-size: .86rem;
+  }
+  input[type=range] { accent-color: var(--orange); }
+
+  .controls-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+  }
+
+  /* ── Camera ── */
+  .camera-frame {
+    background: #000;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    max-width: 480px;
+    aspect-ratio: 4 / 3;
+    margin: 0 auto 4px;
+  }
+  .camera-frame video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .live-indicator {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: .76rem; color: var(--text-muted); margin-top: 6px;
+  }
+  .live-indicator .led { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+  .live-indicator.on .led { background: var(--red); box-shadow: 0 0 6px var(--red); }
+
+  /* ── Reading view ── */
+  #readingView {
+    background: #0b0c14;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    min-height: 180px;
+    max-height: 420px;
+    overflow-y: auto;
+    font-size: 1.02rem;
+    line-height: 1.7;
+    color: var(--text-muted);
+  }
+  #readingView .chunk { transition: color .2s, background .2s; padding: 1px 2px; border-radius: 4px; }
+  #readingView .chunk.active { color: #14100a; background: var(--orange); }
+  #readingView .chunk.done { color: var(--text); }
+  #readingView .placeholder { color: var(--text-muted); font-style: italic; }
+
+  .transport {
+    display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap;
+  }
+  .status-line {
+    font-size: .78rem; color: var(--blue); margin-top: 8px; min-height: 1.1em;
+    letter-spacing: .3px;
+  }
+
+  .note {
+    font-size: .74rem; color: var(--text-muted); line-height: 1.5;
+    border-left: 3px solid var(--violet-dim);
+    padding: 8px 12px;
+    background: rgba(204,153,255,.05);
+    border-radius: 0 6px 6px 0;
+    margin-top: 12px;
+  }
+
+  footer {
+    width: 100%; max-width: 960px; padding: 24px 16px 0;
+    display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+    font-size: .72rem; color: var(--text-muted); letter-spacing: .5px;
+  }
+
+  @media (max-width: 520px) {
+    .elbow-cap { width: 40px; }
+    .elbow-bar h1 { font-size: 1.25rem; }
+    .sub-bar .a { width: 40px; }
+    .sub-bar .c { width: 60px; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="lcars-header">
+    <div class="elbow-top">
+      <div class="elbow-cap"></div>
+      <div class="elbow-bar"><h1>Computer</h1></div>
+    </div>
+    <div class="sub-bar"><div class="a"></div><div class="b"></div><div class="c"></div></div>
+    <div class="tagline">LCARS AUDIO OUTPUT INTERFACE // TEXT-TO-SPEECH MODULE</div>
+  </div>
+
+  <main>
+
+    <section class="panel">
+      <div class="panel-head"><div class="dot" style="background:var(--orange)"></div><h2>Input Source</h2></div>
+      <div class="panel-body">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="paste">Paste Text</button>
+          <button class="tab-btn" data-tab="pdf">Upload PDF</button>
+          <button class="tab-btn" data-tab="image">Upload Image</button>
+          <button class="tab-btn" data-tab="camera">Camera</button>
+        </div>
+
+        <div class="tab-panel active" id="tab-paste">
+          <textarea id="textInput" placeholder="Paste or type a large passage of text here…"></textarea>
+        </div>
+
+        <div class="tab-panel" id="tab-pdf">
+          <div class="dropzone" id="dropzone">
+            <strong>Drop a PDF here</strong> or click to browse.<br>
+            Text is extracted in your browser — nothing is uploaded anywhere.
+            <input type="file" id="pdfInput" accept="application/pdf" />
+          </div>
+        </div>
+
+        <div class="tab-panel" id="tab-image">
+          <div class="dropzone" id="imageDropzone">
+            <strong>Drop a photo or screenshot here</strong> or click to browse.<br>
+            Text is recognized on-device with OCR — your image is never uploaded anywhere.
+            <input type="file" id="imageInput" accept="image/*" />
+          </div>
+          <div class="row">
+            <button class="btn btn-outline" id="screenCaptureBtn">🖥 Capture Screen</button>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="tab-camera">
+          <div class="camera-frame"><video id="cameraVideo" autoplay playsinline muted></video></div>
+          <div class="live-indicator" id="liveIndicator"><span class="led"></span><span id="liveIndicatorText">Camera off</span></div>
+          <div class="row">
+            <button class="btn btn-orange" id="startCameraBtn">Start Camera</button>
+            <button class="btn btn-outline" id="stopCameraBtn" disabled>Stop Camera</button>
+            <button class="btn btn-violet" id="capturePhotoBtn" disabled>📷 Capture Photo</button>
+            <button class="btn btn-blue" id="liveScanBtn" disabled>👁 Start Live Scan</button>
+          </div>
+          <p class="note">
+            <strong>Capture Photo</strong> takes a single still frame, runs OCR on it, and drops the
+            result into the text box for you to review before reading. <strong>Live Scan</strong>
+            keeps sampling the camera every few seconds and speaks new text aloud as it recognizes it —
+            handy for a page, a sign, or a label, hands-free. It works best with clear, well-lit,
+            reasonably large text held steady for a moment; small or blurry print may be missed.
+          </p>
+        </div>
+
+        <div class="row">
+          <button class="btn btn-outline" id="clearBtn">Clear Text</button>
+          <span class="meta" id="wordCount">0 words</span>
+        </div>
+        <div class="status-line" id="statusLine"></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div class="dot" style="background:var(--violet)"></div><h2>Voice Configuration</h2></div>
+      <div class="panel-body">
+        <div class="controls-grid">
+          <div class="control" style="grid-column: 1 / -1;">
+            <label>Voice</label>
+            <select id="voiceSelect"></select>
+          </div>
+          <div class="control">
+            <label><span>Rate</span><span id="rateVal">0.92</span></label>
+            <input type="range" id="rateRange" min="0.5" max="1.5" step="0.02" value="0.92" />
+          </div>
+          <div class="control">
+            <label><span>Pitch</span><span id="pitchVal">0.88</span></label>
+            <input type="range" id="pitchRange" min="0" max="2" step="0.02" value="0.88" />
+          </div>
+          <div class="control">
+            <label><span>Volume</span><span id="volVal">1.00</span></label>
+            <input type="range" id="volRange" min="0" max="1" step="0.02" value="1" />
+          </div>
+        </div>
+        <p class="note">
+          Voice output uses the text-to-speech voices built into your browser or device.
+          There's no way to license or reproduce Majel Barrett's actual computer voice here —
+          but a measured rate, lower pitch and a calm English voice get you close to that
+          familiar "ship's computer" delivery. Pick whichever installed voice sounds best to you.
+        </p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div class="dot" style="background:var(--blue)"></div><h2>Playback</h2></div>
+      <div class="panel-body">
+        <div id="readingView"><span class="placeholder">Awaiting input. Paste text, upload a PDF or image, or use the camera, then engage playback.</span></div>
+        <div class="transport">
+          <button class="btn btn-orange" id="playBtn">▶ Engage</button>
+          <button class="btn btn-violet" id="pauseBtn" disabled>❚❚ Pause</button>
+          <button class="btn btn-blue" id="resumeBtn" disabled>▶ Resume</button>
+          <button class="btn btn-outline" id="stopBtn" disabled>■ Stop</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <span>COMPUTER TEXT READER v1.1</span>
+    <span id="engineStatus">Speech engine: checking…</span>
+  </footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // ── Elements ──
+  const textInput = document.getElementById('textInput');
+  const wordCount = document.getElementById('wordCount');
+  const statusLine = document.getElementById('statusLine');
+  const clearBtn = document.getElementById('clearBtn');
+  const dropzone = document.getElementById('dropzone');
+  const pdfInput = document.getElementById('pdfInput');
+  const imageDropzone = document.getElementById('imageDropzone');
+  const imageInput = document.getElementById('imageInput');
+  const screenCaptureBtn = document.getElementById('screenCaptureBtn');
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  const tabPanels = document.querySelectorAll('.tab-panel');
+
+  const cameraVideo = document.getElementById('cameraVideo');
+  const startCameraBtn = document.getElementById('startCameraBtn');
+  const stopCameraBtn = document.getElementById('stopCameraBtn');
+  const capturePhotoBtn = document.getElementById('capturePhotoBtn');
+  const liveScanBtn = document.getElementById('liveScanBtn');
+  const liveIndicator = document.getElementById('liveIndicator');
+  const liveIndicatorText = document.getElementById('liveIndicatorText');
+
+  const voiceSelect = document.getElementById('voiceSelect');
+  const rateRange = document.getElementById('rateRange');
+  const pitchRange = document.getElementById('pitchRange');
+  const volRange = document.getElementById('volRange');
+  const rateVal = document.getElementById('rateVal');
+  const pitchVal = document.getElementById('pitchVal');
+  const volVal = document.getElementById('volVal');
+
+  const readingView = document.getElementById('readingView');
+  const playBtn = document.getElementById('playBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const resumeBtn = document.getElementById('resumeBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const engineStatus = document.getElementById('engineStatus');
+
+  const synth = window.speechSynthesis;
+  let voices = [];
+  let chunks = [];
+  let currentIndex = 0;
+  let speaking = false;
+  let keepAliveTimer = null;
+
+  // ── Tabs ──
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabBtns.forEach(b => b.classList.remove('active'));
+      tabPanels.forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ── Word count / persistence ──
+  function updateWordCount() {
+    const words = textInput.value.trim().split(/\s+/).filter(Boolean);
+    wordCount.textContent = words.length + ' word' + (words.length === 1 ? '' : 's');
+  }
+  textInput.addEventListener('input', () => {
+    updateWordCount();
+    saveText();
+  });
+  function saveText() {
+    try { localStorage.setItem('reader-text', textInput.value); } catch (e) {}
+  }
+  function loadText() {
+    try {
+      const t = localStorage.getItem('reader-text');
+      if (t) textInput.value = t;
+    } catch (e) {}
+  }
+  clearBtn.addEventListener('click', () => {
+    textInput.value = '';
+    saveText();
+    updateWordCount();
+    resetReadingView();
+  });
+
+  function appendTextToInput(text) {
+    const sep = textInput.value.trim() ? '\n\n' : '';
+    textInput.value = (textInput.value.trim() + sep + text).trim();
+    saveText();
+    updateWordCount();
+  }
+
+  function setStatus(msg, isError) {
+    statusLine.textContent = msg;
+    statusLine.style.color = isError ? 'var(--red)' : 'var(--blue)';
+  }
+
+  // ── PDF handling ──
+  if (window['pdfjsLib']) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+
+  dropzone.addEventListener('click', () => pdfInput.click());
+  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('drag');
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) handlePdfFile(file);
+  });
+  pdfInput.addEventListener('change', () => {
+    const file = pdfInput.files && pdfInput.files[0];
+    if (file) handlePdfFile(file);
+  });
+
+  async function handlePdfFile(file) {
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      setStatus('That file does not look like a PDF.', true);
+      return;
+    }
+    if (!window['pdfjsLib']) {
+      setStatus('PDF engine failed to load — check your connection and try again.', true);
+      return;
+    }
+    setStatus('Loading PDF…');
+    try {
+      const buf = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+      let extracted = '';
+      for (let i = 1; i <= pdf.numPages; i++) {
+        setStatus(`Extracting text — page ${i} of ${pdf.numPages}…`);
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        const pageText = content.items.map(it => it.str).join(' ');
+        extracted += pageText.trim() + '\n\n';
+      }
+      extracted = extracted.trim();
+      if (!extracted) {
+        setStatus('No selectable text found in that PDF (it may be a scanned image).', true);
+        return;
+      }
+      appendTextToInput(extracted);
+      setStatus(`Loaded "${file.name}" — ${pdf.numPages} page${pdf.numPages === 1 ? '' : 's'}.`);
+      tabBtns[0].click();
+    } catch (err) {
+      console.error(err);
+      setStatus('Could not read that PDF: ' + err.message, true);
+    }
+  }
+
+  // ── OCR (images, photos, screen captures) ──
+  let ocrWorker = null;
+  let ocrWorkerPromise = null;
+
+  function getOcrWorker() {
+    if (!window['Tesseract']) return Promise.reject(new Error('OCR_UNAVAILABLE'));
+    if (ocrWorker) return Promise.resolve(ocrWorker);
+    if (!ocrWorkerPromise) {
+      ocrWorkerPromise = Tesseract.createWorker('eng', 1, {
+        workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
+        corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core.wasm.js',
+        langPath: 'https://tessdata.projectnaptha.com/4.0.0'
+      }).then(w => { ocrWorker = w; return w; })
+        .catch(err => { ocrWorkerPromise = null; throw err; });
+    }
+    return ocrWorkerPromise;
+  }
+
+  async function ocrImageSource(source) {
+    const worker = await getOcrWorker();
+    const { data } = await worker.recognize(source);
+    return (data.text || '').trim();
+  }
+
+  function ocrErrorMessage(err) {
+    if (err && err.message === 'OCR_UNAVAILABLE') {
+      return 'OCR engine failed to load — check your connection and try again.';
+    }
+    return 'Could not read that image: ' + (err && err.message ? err.message : err);
+  }
+
+  // ── Image upload handling ──
+  imageDropzone.addEventListener('click', () => imageInput.click());
+  imageDropzone.addEventListener('dragover', e => { e.preventDefault(); imageDropzone.classList.add('drag'); });
+  imageDropzone.addEventListener('dragleave', () => imageDropzone.classList.remove('drag'));
+  imageDropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    imageDropzone.classList.remove('drag');
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) handleImageFile(file);
+  });
+  imageInput.addEventListener('change', () => {
+    const file = imageInput.files && imageInput.files[0];
+    if (file) handleImageFile(file);
+  });
+
+  async function handleImageFile(file) {
+    if (!file.type.startsWith('image/')) {
+      setStatus('That file does not look like an image.', true);
+      return;
+    }
+    setStatus('Reading image (OCR)…');
+    try {
+      const text = await ocrImageSource(file);
+      if (!text) { setStatus('No text was detected in that image.', true); return; }
+      appendTextToInput(text);
+      setStatus(`Extracted text from "${file.name}".`);
+      tabBtns[0].click();
+    } catch (err) {
+      console.error(err);
+      setStatus(ocrErrorMessage(err), true);
+    }
+  }
+
+  // ── Screen capture (single frame, then the share stops) ──
+  screenCaptureBtn.addEventListener('click', captureScreen);
+
+  async function captureScreen() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+      setStatus('Screen capture is not supported in this browser.', true);
+      return;
+    }
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+    } catch (err) {
+      setStatus('Screen capture was cancelled or denied.', true);
+      return;
+    }
+    setStatus('Reading screen capture (OCR)…');
+    try {
+      const track = stream.getVideoTracks()[0];
+      const canvas = await frameFromTrack(track);
+      stream.getTracks().forEach(t => t.stop());
+      const text = await ocrImageSource(canvas);
+      if (!text) { setStatus('No text was detected in that screen capture.', true); return; }
+      appendTextToInput(text);
+      setStatus('Extracted text from screen capture.');
+      tabBtns[0].click();
+    } catch (err) {
+      stream.getTracks().forEach(t => t.stop());
+      console.error(err);
+      setStatus(ocrErrorMessage(err), true);
+    }
+  }
+
+  async function frameFromTrack(track) {
+    if (window.ImageCapture) {
+      try {
+        const capture = new ImageCapture(track);
+        const bitmap = await capture.grabFrame();
+        const canvas = document.createElement('canvas');
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        canvas.getContext('2d').drawImage(bitmap, 0, 0);
+        return canvas;
+      } catch (e) { /* fall through to the video-element approach */ }
+    }
+    const video = document.createElement('video');
+    video.srcObject = new MediaStream([track]);
+    video.muted = true;
+    video.playsInline = true;
+    await video.play();
+    await new Promise(r => setTimeout(r, 200));
+    return drawVideoFrameToCanvas(video, 2000);
+  }
+
+  function drawVideoFrameToCanvas(video, maxWidth) {
+    const vw = video.videoWidth || maxWidth;
+    const vh = video.videoHeight || maxWidth;
+    const scale = Math.min(1, maxWidth / vw);
+    const w = Math.max(1, Math.round(vw * scale));
+    const h = Math.max(1, Math.round(vh * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    canvas.getContext('2d').drawImage(video, 0, 0, w, h);
+    return canvas;
+  }
+
+  // ── Camera (live preview, single capture, live scan) ──
+  let cameraStream = null;
+  let liveScanActive = false;
+  let liveScanTimer = null;
+  let liveScanBusy = false;
+  let seenLiveSentences = new Set();
+
+  startCameraBtn.addEventListener('click', startCamera);
+  stopCameraBtn.addEventListener('click', stopCamera);
+  capturePhotoBtn.addEventListener('click', capturePhoto);
+  liveScanBtn.addEventListener('click', () => {
+    if (liveScanActive) stopLiveScan(); else startLiveScan();
+  });
+
+  async function startCamera() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setStatus('Camera access is not supported in this browser.', true);
+      return;
+    }
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
+      });
+      cameraVideo.srcObject = cameraStream;
+      await cameraVideo.play();
+      setCameraUIState(true);
+      setStatus('Camera ready.');
+    } catch (err) {
+      setStatus(describeMediaError(err), true);
+    }
+  }
+
+  function stopCamera() {
+    stopLiveScan();
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(t => t.stop());
+      cameraStream = null;
+    }
+    cameraVideo.srcObject = null;
+    setCameraUIState(false);
+    setStatus('Camera stopped.');
+  }
+
+  function setCameraUIState(active) {
+    startCameraBtn.disabled = active;
+    stopCameraBtn.disabled = !active;
+    capturePhotoBtn.disabled = !active;
+    liveScanBtn.disabled = !active;
+    liveIndicatorText.textContent = active ? 'Camera on' : 'Camera off';
+  }
+
+  function describeMediaError(err) {
+    if (!err || !err.name) return 'Could not access the camera.';
+    if (err.name === 'NotAllowedError') return 'Camera permission was denied.';
+    if (err.name === 'NotFoundError') return 'No camera was found on this device.';
+    if (err.name === 'NotReadableError') return 'The camera is already in use by another application.';
+    return 'Could not access the camera: ' + err.message;
+  }
+
+  async function capturePhoto() {
+    if (!cameraStream) { setStatus('Start the camera first.', true); return; }
+    setStatus('Reading photo (OCR)…');
+    try {
+      const canvas = drawVideoFrameToCanvas(cameraVideo, 1400);
+      const text = await ocrImageSource(canvas);
+      if (!text) { setStatus('No text was detected in that photo.', true); return; }
+      appendTextToInput(text);
+      setStatus('Extracted text from photo.');
+      tabBtns[0].click();
+    } catch (err) {
+      console.error(err);
+      setStatus(ocrErrorMessage(err), true);
+    }
+  }
+
+  function startLiveScan() {
+    if (!cameraStream) { setStatus('Start the camera first.', true); return; }
+    liveScanActive = true;
+    seenLiveSentences = new Set();
+    chunks = [];
+    currentIndex = 0;
+    synth.cancel();
+    readingView.innerHTML = '';
+    liveScanBtn.textContent = '■ Stop Live Scan';
+    liveIndicator.classList.add('on');
+    liveIndicatorText.textContent = 'Live scanning…';
+    setStatus('Live scan started — point the camera at some text.');
+    scanFrameOnce();
+    liveScanTimer = setInterval(scanFrameOnce, 3500);
+  }
+
+  function stopLiveScan() {
+    liveScanActive = false;
+    if (liveScanTimer) { clearInterval(liveScanTimer); liveScanTimer = null; }
+    liveScanBtn.textContent = '👁 Start Live Scan';
+    liveIndicator.classList.remove('on');
+    liveIndicatorText.textContent = cameraStream ? 'Camera on' : 'Camera off';
+  }
+
+  async function scanFrameOnce() {
+    if (!liveScanActive || liveScanBusy) return;
+    liveScanBusy = true;
+    try {
+      const canvas = drawVideoFrameToCanvas(cameraVideo, 900);
+      const text = await ocrImageSource(canvas);
+      processLiveText(text);
+    } catch (err) {
+      console.error(err);
+      setStatus(ocrErrorMessage(err), true);
+      stopLiveScan();
+    } finally {
+      liveScanBusy = false;
+    }
+  }
+
+  function processLiveText(text) {
+    if (!liveScanActive) return;
+    const sentences = splitIntoSentences(text);
+    let added = false;
+    sentences.forEach(s => {
+      const norm = s.toLowerCase().replace(/\s+/g, ' ').trim();
+      if (norm.length < 4 || seenLiveSentences.has(norm)) return;
+      seenLiveSentences.add(norm);
+      appendLiveChunk(s);
+      added = true;
+    });
+    if (added) {
+      setStatus('New text found — reading…');
+      if (!synth.speaking && !synth.paused) {
+        speaking = true;
+        setTransportState('playing');
+        startKeepAlive();
+        speakNext();
+      }
+    } else {
+      setStatus('Live scan running…');
+    }
+  }
+
+  function appendLiveChunk(text) {
+    const i = chunks.length;
+    chunks.push(text);
+    if (readingView.querySelector('.placeholder')) readingView.innerHTML = '';
+    readingView.appendChild(document.createTextNode(' '));
+    const span = document.createElement('span');
+    span.className = 'chunk';
+    span.dataset.i = String(i);
+    span.textContent = text;
+    readingView.appendChild(span);
+  }
+
+  // ── Voices ──
+  function pickDefaultVoice(list) {
+    const preferredNames = [
+      'Samantha', 'Victoria', 'Karen', 'Moira', 'Tessa', 'Fiona', 'Ava', 'Allison', 'Susan',
+      'Google UK English Female', 'Google US English', 'Microsoft Zira', 'Microsoft Jenny',
+      'Microsoft Aria', 'Microsoft Libby'
+    ];
+    let v = list.find(v => preferredNames.some(n => v.name.includes(n)));
+    if (!v) v = list.find(v => /^en/i.test(v.lang) && /female/i.test(v.name));
+    if (!v) v = list.find(v => /^en/i.test(v.lang) && v.default);
+    if (!v) v = list.find(v => /^en/i.test(v.lang));
+    if (!v) v = list[0];
+    return v;
+  }
+
+  function populateVoices() {
+    voices = synth.getVoices();
+    if (!voices.length) return;
+    const savedURI = localStorage.getItem('reader-voice-uri');
+    voiceSelect.innerHTML = '';
+    voices.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v.voiceURI;
+      opt.textContent = `${v.name} (${v.lang})`;
+      voiceSelect.appendChild(opt);
+    });
+    const saved = voices.find(v => v.voiceURI === savedURI);
+    const chosen = saved || pickDefaultVoice(voices);
+    if (chosen) voiceSelect.value = chosen.voiceURI;
+    engineStatus.textContent = `Speech engine: ${voices.length} voice${voices.length === 1 ? '' : 's'} available`;
+  }
+  if (synth) {
+    populateVoices();
+    synth.addEventListener('voiceschanged', populateVoices);
+  } else {
+    engineStatus.textContent = 'Speech engine: not supported in this browser';
+  }
+  voiceSelect.addEventListener('change', () => {
+    localStorage.setItem('reader-voice-uri', voiceSelect.value);
+  });
+
+  function getSelectedVoice() {
+    return voices.find(v => v.voiceURI === voiceSelect.value);
+  }
+
+  // ── Sliders ──
+  function bindRange(range, label, key, decimals) {
+    const saved = localStorage.getItem(key);
+    if (saved !== null) { range.value = saved; }
+    label.textContent = Number(range.value).toFixed(decimals);
+    range.addEventListener('input', () => {
+      label.textContent = Number(range.value).toFixed(decimals);
+      localStorage.setItem(key, range.value);
+    });
+  }
+  bindRange(rateRange, rateVal, 'reader-rate', 2);
+  bindRange(pitchRange, pitchVal, 'reader-pitch', 2);
+  bindRange(volRange, volVal, 'reader-volume', 2);
+
+  // ── Sentence chunking ──
+  function splitIntoSentences(text) {
+    let sentences;
+    if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+      try {
+        const seg = new Intl.Segmenter(undefined, { granularity: 'sentence' });
+        sentences = Array.from(seg.segment(text), s => s.segment);
+      } catch (e) {
+        sentences = null;
+      }
+    }
+    if (!sentences) {
+      sentences = text.split(/(?<=[.!?])\s+(?=[A-Z0-9"'])|\n{2,}/);
+    }
+    sentences = sentences.map(s => s.trim()).filter(Boolean);
+
+    // Cap chunk length so very long "sentences" (e.g. PDF/OCR artifacts) still
+    // get spoken reliably across speech engines.
+    const MAX_LEN = 220;
+    const result = [];
+    sentences.forEach(s => {
+      if (s.length <= MAX_LEN) { result.push(s); return; }
+      let remaining = s;
+      while (remaining.length > MAX_LEN) {
+        let cut = remaining.lastIndexOf(' ', MAX_LEN);
+        if (cut < 40) cut = MAX_LEN;
+        result.push(remaining.slice(0, cut).trim());
+        remaining = remaining.slice(cut).trim();
+      }
+      if (remaining) result.push(remaining);
+    });
+    return result;
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
+
+  function renderReadingView() {
+    readingView.innerHTML = chunks
+      .map((c, i) => `<span class="chunk" data-i="${i}">${escapeHtml(c)}</span>`)
+      .join(' ');
+  }
+
+  function resetReadingView() {
+    readingView.innerHTML = '<span class="placeholder">Awaiting input. Paste text, upload a PDF or image, or use the camera, then engage playback.</span>';
+  }
+
+  function highlightChunk(i) {
+    const prevActive = readingView.querySelector('.chunk.active');
+    if (prevActive) { prevActive.classList.remove('active'); prevActive.classList.add('done'); }
+    const el = readingView.querySelector(`.chunk[data-i="${i}"]`);
+    if (el) {
+      el.classList.add('active');
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  // ── A short synthesized computer chirp (no copyrighted audio used) ──
+  function playChirp(kind) {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const notes = kind === 'start' ? [660, 880] : [880, 520];
+      let t = ctx.currentTime;
+      notes.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.001, t);
+        gain.gain.exponentialRampToValueAtTime(0.12, t + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.11);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.12);
+        t += 0.09;
+      });
+      setTimeout(() => ctx.close(), 400);
+    } catch (e) { /* Web Audio unavailable — silently skip the chirp */ }
+  }
+
+  // ── Playback control ──
+  function setTransportState(state) {
+    // state: 'idle' | 'playing' | 'paused'
+    playBtn.disabled = state === 'playing';
+    pauseBtn.disabled = state !== 'playing';
+    resumeBtn.disabled = state !== 'paused';
+    stopBtn.disabled = state === 'idle';
+  }
+
+  function startKeepAlive() {
+    // Some Chromium builds silently stop long utterances after ~15s of
+    // being "backgrounded"; nudging pause/resume periodically works around it.
+    stopKeepAlive();
+    keepAliveTimer = setInterval(() => {
+      if (synth.speaking && !synth.paused) {
+        synth.pause();
+        synth.resume();
+      }
+    }, 9000);
+  }
+  function stopKeepAlive() {
+    if (keepAliveTimer) { clearInterval(keepAliveTimer); keepAliveTimer = null; }
+  }
+
+  function speakNext() {
+    if (currentIndex >= chunks.length) {
+      if (liveScanActive) { speaking = false; setTransportState('idle'); stopKeepAlive(); return; }
+      finishReading();
+      return;
+    }
+    const utter = new SpeechSynthesisUtterance(chunks[currentIndex]);
+    const voice = getSelectedVoice();
+    if (voice) utter.voice = voice;
+    utter.rate = Number(rateRange.value);
+    utter.pitch = Number(pitchRange.value);
+    utter.volume = Number(volRange.value);
+    utter.onstart = () => highlightChunk(currentIndex);
+    utter.onend = () => { currentIndex++; speakNext(); };
+    utter.onerror = () => { currentIndex++; speakNext(); };
+    synth.speak(utter);
+  }
+
+  function finishReading() {
+    speaking = false;
+    stopKeepAlive();
+    setTransportState('idle');
+    setStatus('Reading complete.');
+    playChirp('stop');
+  }
+
+  playBtn.addEventListener('click', () => {
+    const text = textInput.value.trim();
+    if (!text) { setStatus('There is no text to read yet.', true); return; }
+    if (!synth) { setStatus('Speech synthesis is not supported in this browser.', true); return; }
+    if (liveScanActive) stopLiveScan();
+    synth.cancel();
+    chunks = splitIntoSentences(text);
+    if (!chunks.length) { setStatus('Nothing readable was found in that text.', true); return; }
+    currentIndex = 0;
+    renderReadingView();
+    speaking = true;
+    setTransportState('playing');
+    setStatus('Reading…');
+    playChirp('start');
+    startKeepAlive();
+    speakNext();
+  });
+
+  pauseBtn.addEventListener('click', () => {
+    if (synth.speaking) {
+      synth.pause();
+      setTransportState('paused');
+      setStatus('Paused.');
+    }
+  });
+
+  resumeBtn.addEventListener('click', () => {
+    if (synth.paused) {
+      synth.resume();
+      setTransportState('playing');
+      setStatus('Reading…');
+    }
+  });
+
+  stopBtn.addEventListener('click', () => {
+    if (liveScanActive) stopLiveScan();
+    synth.cancel();
+    speaking = false;
+    stopKeepAlive();
+    setTransportState('idle');
+    setStatus('Stopped.');
+    const active = readingView.querySelector('.chunk.active');
+    if (active) active.classList.remove('active');
+  });
+
+  window.addEventListener('beforeunload', () => {
+    if (synth) synth.cancel();
+    if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
+    if (ocrWorker) ocrWorker.terminate();
+  });
+
+  // ── Init ──
+  loadText();
+  updateWordCount();
+
+  // ── Service worker (offline PWA) ──
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+})();
+</script>
+</body>
+</html>
