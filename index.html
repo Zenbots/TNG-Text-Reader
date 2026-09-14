@@ -1052,17 +1052,21 @@
   function populateVoices() {
     voices = synth.getVoices();
     if (!voices.length) return;
+    // Index into `voices` rather than voiceURI: some browsers/engines emit
+    // duplicate voiceURIs, which would make <select> silently collapse
+    // distinct entries onto the same value and make picking a voice a no-op.
     const savedURI = localStorage.getItem('reader-voice-uri');
     voiceSelect.innerHTML = '';
-    voices.forEach(v => {
+    voices.forEach((v, i) => {
       const opt = document.createElement('option');
-      opt.value = v.voiceURI;
+      opt.value = String(i);
       opt.textContent = `${v.name} (${v.lang})`;
       voiceSelect.appendChild(opt);
     });
-    const saved = voices.find(v => v.voiceURI === savedURI);
-    const chosen = saved || pickDefaultVoice(voices);
-    if (chosen) voiceSelect.value = chosen.voiceURI;
+    let chosenIndex = voices.findIndex(v => v.voiceURI === savedURI);
+    if (chosenIndex === -1) chosenIndex = voices.indexOf(pickDefaultVoice(voices));
+    if (chosenIndex === -1) chosenIndex = 0;
+    voiceSelect.value = String(chosenIndex);
     engineStatus.textContent = `Speech engine: ${voices.length} voice${voices.length === 1 ? '' : 's'} available`;
   }
   if (synth) {
@@ -1072,11 +1076,12 @@
     engineStatus.textContent = 'Speech engine: not supported in this browser';
   }
   voiceSelect.addEventListener('change', () => {
-    localStorage.setItem('reader-voice-uri', voiceSelect.value);
+    const v = voices[Number(voiceSelect.value)];
+    if (v) localStorage.setItem('reader-voice-uri', v.voiceURI);
   });
 
   function getSelectedVoice() {
-    return voices.find(v => v.voiceURI === voiceSelect.value);
+    return voices[Number(voiceSelect.value)];
   }
 
   // ── Sliders ──
@@ -1147,10 +1152,9 @@
     const prevActive = readingView.querySelector('.chunk.active');
     if (prevActive) { prevActive.classList.remove('active'); prevActive.classList.add('done'); }
     const el = readingView.querySelector(`.chunk[data-i="${i}"]`);
-    if (el) {
-      el.classList.add('active');
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
+    if (el) el.classList.add('active');
+    // Deliberately no auto-scroll here — the highlight moves, the page doesn't,
+    // so you can scroll around freely while it reads.
   }
 
   // ── A short synthesized computer chirp (no copyrighted audio used) ──
@@ -1208,7 +1212,12 @@
     }
     const utter = new SpeechSynthesisUtterance(chunks[currentIndex]);
     const voice = getSelectedVoice();
-    if (voice) utter.voice = voice;
+    if (voice) {
+      utter.voice = voice;
+      // Some engines (notably Chrome/WebKit) silently fall back to a default
+      // voice if the utterance's lang doesn't match the chosen voice's lang.
+      utter.lang = voice.lang;
+    }
     utter.rate = Number(rateRange.value);
     utter.pitch = Number(pitchRange.value);
     utter.volume = Number(volRange.value);
