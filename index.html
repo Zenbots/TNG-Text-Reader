@@ -434,7 +434,6 @@
           <button class="btn btn-orange" id="playBtn">▶ Engage</button>
           <button class="btn btn-violet" id="pauseBtn" disabled>❚❚ Pause</button>
           <button class="btn btn-blue" id="resumeBtn" disabled>▶ Resume</button>
-          <button class="btn btn-outline" id="stopBtn" disabled>■ Stop</button>
         </div>
       </div>
     </section>
@@ -494,14 +493,12 @@
   const playBtn = document.getElementById('playBtn');
   const pauseBtn = document.getElementById('pauseBtn');
   const resumeBtn = document.getElementById('resumeBtn');
-  const stopBtn = document.getElementById('stopBtn');
   const engineStatus = document.getElementById('engineStatus');
 
   const synth = window.speechSynthesis;
   let voices = [];
   let chunks = [];
   let currentIndex = 0;
-  let speaking = false;
   let keepAliveTimer = null;
 
   // ── Tabs ──
@@ -811,8 +808,9 @@
     });
     if (added) {
       setStatus('New text found — reading…');
-      if (!synth.speaking && !synth.paused) {
-        speaking = true;
+      // Only auto-kick the speak loop if it's genuinely idle — if the user
+      // has paused, leave the new text queued rather than overriding them.
+      if (playbackState === 'idle') {
         setTransportState('playing');
         startKeepAlive();
         speakNext();
@@ -1181,12 +1179,20 @@
   }
 
   // ── Playback control ──
+  // Native SpeechSynthesis.pause()/resume() is notoriously unreliable across
+  // browsers, especially with a queue of many short utterances (which is
+  // exactly what sentence-chunked reading is). So "pause" here means: cancel
+  // the utterance in flight and remember which chunk it was; "resume" just
+  // re-speaks that same chunk from its start. Far more predictable than
+  // fighting the native pause/resume implementation.
+  let playbackState = 'idle'; // 'idle' | 'playing' | 'paused'
+  let expectingCancel = false; // true while we're deliberately cancelling mid-utterance
+
   function setTransportState(state) {
-    // state: 'idle' | 'playing' | 'paused'
-    playBtn.disabled = state === 'playing';
+    playbackState = state;
+    // Engage always stays enabled — it doubles as "start" and "restart".
     pauseBtn.disabled = state !== 'playing';
     resumeBtn.disabled = state !== 'paused';
-    stopBtn.disabled = state === 'idle';
   }
 
   function startKeepAlive() {
@@ -1206,7 +1212,7 @@
 
   function speakNext() {
     if (currentIndex >= chunks.length) {
-      if (liveScanActive || screenLiveActive) { speaking = false; setTransportState('idle'); stopKeepAlive(); return; }
+      if (liveScanActive || screenLiveActive) { setTransportState('idle'); stopKeepAlive(); return; }
       finishReading();
       return;
     }
@@ -1222,13 +1228,20 @@
     utter.pitch = Number(pitchRange.value);
     utter.volume = Number(volRange.value);
     utter.onstart = () => highlightChunk(currentIndex);
-    utter.onend = () => { currentIndex++; speakNext(); };
-    utter.onerror = () => { currentIndex++; speakNext(); };
+    utter.onend = () => {
+      if (expectingCancel) { expectingCancel = false; return; }
+      currentIndex++;
+      speakNext();
+    };
+    utter.onerror = () => {
+      if (expectingCancel) { expectingCancel = false; return; }
+      currentIndex++;
+      speakNext();
+    };
     synth.speak(utter);
   }
 
   function finishReading() {
-    speaking = false;
     stopKeepAlive();
     setTransportState('idle');
     setStatus('Reading complete.');
@@ -1241,12 +1254,12 @@
     if (!synth) { setStatus('Speech synthesis is not supported in this browser.', true); return; }
     if (liveScanActive) stopLiveScan();
     if (screenLiveActive) stopScreenLiveScan();
+    expectingCancel = true;
     synth.cancel();
     chunks = splitIntoSentences(text);
     if (!chunks.length) { setStatus('Nothing readable was found in that text.', true); return; }
     currentIndex = 0;
     renderReadingView();
-    speaking = true;
     setTransportState('playing');
     setStatus('Reading…');
     playChirp('start');
@@ -1255,31 +1268,20 @@
   });
 
   pauseBtn.addEventListener('click', () => {
-    if (synth.speaking) {
-      synth.pause();
-      setTransportState('paused');
-      setStatus('Paused.');
-    }
+    if (playbackState !== 'playing') return;
+    expectingCancel = true;
+    synth.cancel();
+    stopKeepAlive();
+    setTransportState('paused');
+    setStatus('Paused.');
   });
 
   resumeBtn.addEventListener('click', () => {
-    if (synth.paused) {
-      synth.resume();
-      setTransportState('playing');
-      setStatus('Reading…');
-    }
-  });
-
-  stopBtn.addEventListener('click', () => {
-    if (liveScanActive) stopLiveScan();
-    if (screenLiveActive) stopScreenLiveScan();
-    synth.cancel();
-    speaking = false;
-    stopKeepAlive();
-    setTransportState('idle');
-    setStatus('Stopped.');
-    const active = readingView.querySelector('.chunk.active');
-    if (active) active.classList.remove('active');
+    if (playbackState !== 'paused') return;
+    setTransportState('playing');
+    setStatus('Reading…');
+    startKeepAlive();
+    speakNext();
   });
 
   window.addEventListener('beforeunload', () => {
