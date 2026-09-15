@@ -264,6 +264,10 @@
   #readingView .chunk.active { color: #14100a; background: var(--orange); }
   #readingView .chunk.done { color: var(--text); }
   #readingView .placeholder { color: var(--text-muted); font-style: italic; }
+  #readingView.tap-mode { cursor: pointer; outline: 1px dashed var(--blue-dim); }
+  #readingView.tap-mode .chunk:hover { background: var(--blue-dim); color: var(--text); }
+
+  .btn.on { background: var(--blue); border-color: var(--blue); color: #0c1a33; }
 
   .transport {
     display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap;
@@ -427,6 +431,7 @@
           <button class="btn btn-violet" id="pauseBtn" disabled>❚❚ Pause</button>
           <button class="btn btn-blue" id="resumeBtn" disabled>▶ Resume</button>
           <button class="btn btn-outline" id="forwardBtn" disabled>Forward ▶▶</button>
+          <button class="btn btn-outline" id="tapBtn">👆 Tap</button>
         </div>
       </div>
     </section>
@@ -488,6 +493,7 @@
   const pauseBtn = document.getElementById('pauseBtn');
   const resumeBtn = document.getElementById('resumeBtn');
   const forwardBtn = document.getElementById('forwardBtn');
+  const tapBtn = document.getElementById('tapBtn');
   const engineStatus = document.getElementById('engineStatus');
 
   const synth = window.speechSynthesis;
@@ -528,7 +534,13 @@
     textInput.value = '';
     saveText();
     updateWordCount();
+    stopSpeaking();
+    stopKeepAlive();
+    chunks = [];
+    currentIndex = 0;
+    exitTapMode();
     resetReadingView();
+    setTransportState('idle');
   });
 
   function appendTextToInput(text) {
@@ -1290,27 +1302,84 @@
     speakNext();
   });
 
-  // Back/Forward step one sentence and carry on reading from there.
-  function jumpBy(delta) {
-    if (!chunks.length) { setStatus('There is nothing to skip through yet.', true); return; }
+  // Repaint read/unread marks after a jump, so the view matches where we
+  // actually are rather than everything we happened to have played before.
+  function syncProgressMarks() {
+    readingView.querySelectorAll('.chunk').forEach(el => {
+      const i = Number(el.dataset.i);
+      el.classList.toggle('done', i < currentIndex);
+      if (i !== currentIndex) el.classList.remove('active');
+    });
+  }
+
+  // Start reading at a specific sentence and carry on from there.
+  function readFrom(index) {
+    if (liveScanActive) stopLiveScan();
+    if (screenLiveActive) stopScreenLiveScan();
     stopSpeaking();
-    const target = Math.max(0, currentIndex + delta);
-    if (target >= chunks.length) {
-      currentIndex = chunks.length;
-      stopKeepAlive();
-      setTransportState('idle');
-      setStatus('Reached the end.');
-      return;
-    }
-    currentIndex = target;
+    currentIndex = index;
+    syncProgressMarks();
     setTransportState('playing');
     setStatus('Reading…');
     startKeepAlive();
     speakNext();
   }
 
+  // Back/Forward step one sentence and carry on reading from there.
+  function jumpBy(delta) {
+    if (!chunks.length) { setStatus('There is nothing to skip through yet.', true); return; }
+    const target = Math.max(0, currentIndex + delta);
+    if (target >= chunks.length) {
+      stopSpeaking();
+      currentIndex = chunks.length;
+      syncProgressMarks();
+      stopKeepAlive();
+      setTransportState('idle');
+      setStatus('Reached the end.');
+      return;
+    }
+    readFrom(target);
+  }
+
   backBtn.addEventListener('click', () => jumpBy(-1));
   forwardBtn.addEventListener('click', () => jumpBy(1));
+
+  // ── Tap-to-read ──
+  // Gated behind its own toggle: the reading view scrolls, and on a phone an
+  // always-live tap target would hijack every scroll touch.
+  let tapMode = false;
+
+  function exitTapMode() {
+    tapMode = false;
+    readingView.classList.remove('tap-mode');
+    tapBtn.classList.remove('on');
+  }
+
+  tapBtn.addEventListener('click', () => {
+    if (!tapMode && !chunks.length) {
+      // Nothing rendered to tap yet — lay the text out so there are targets.
+      const text = textInput.value.trim();
+      if (!text) { setStatus('There is no text to tap through yet.', true); return; }
+      chunks = splitIntoSentences(text);
+      if (!chunks.length) { setStatus('Nothing readable was found in that text.', true); return; }
+      currentIndex = 0;
+      renderReadingView();
+    }
+    tapMode = !tapMode;
+    readingView.classList.toggle('tap-mode', tapMode);
+    tapBtn.classList.toggle('on', tapMode);
+    setStatus(tapMode ? 'Tap mode on — tap any sentence to read from there.' : 'Tap mode off.');
+    setTransportState(playbackState);
+  });
+
+  readingView.addEventListener('click', e => {
+    if (!tapMode) return;
+    const el = e.target.closest('.chunk');
+    if (!el) return;
+    const i = Number(el.dataset.i);
+    if (!Number.isInteger(i) || i < 0 || i >= chunks.length) return;
+    readFrom(i);
+  });
 
   window.addEventListener('beforeunload', () => {
     if (synth) synth.cancel();
