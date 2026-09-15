@@ -500,7 +500,7 @@
   let voices = [];
   let chunks = [];
   let currentIndex = 0;
-  let keepAliveTimer = null;
+  let watchdogTimer = null;
 
   // ── Tabs ──
   tabBtns.forEach(btn => {
@@ -535,7 +535,7 @@
     saveText();
     updateWordCount();
     stopSpeaking();
-    stopKeepAlive();
+    stopWatchdog();
     chunks = [];
     currentIndex = 0;
     exitTapMode();
@@ -819,7 +819,7 @@
       // has paused, leave the new text queued rather than overriding them.
       if (playbackState === 'idle') {
         setTransportState('playing');
-        startKeepAlive();
+        startWatchdog();
         speakNext();
       }
     } else {
@@ -1120,15 +1120,21 @@
     }
     sentences = sentences.map(s => s.trim()).filter(Boolean);
 
-    // Cap chunk length so very long "sentences" (e.g. PDF/OCR artifacts) still
-    // get spoken reliably across speech engines.
-    const MAX_LEN = 220;
+    // Cap chunk length: engines cut off utterances that run too long (Chrome
+    // at roughly 15 seconds), so keep each one comfortably short. Split at a
+    // clause boundary where possible so the break still sounds natural.
+    const MAX_LEN = 160;
     const result = [];
     sentences.forEach(s => {
       if (s.length <= MAX_LEN) { result.push(s); return; }
       let remaining = s;
       while (remaining.length > MAX_LEN) {
-        let cut = remaining.lastIndexOf(' ', MAX_LEN);
+        const window = remaining.slice(0, MAX_LEN);
+        const clause = Math.max(
+          window.lastIndexOf(', '), window.lastIndexOf('; '),
+          window.lastIndexOf(': '), window.lastIndexOf(' — ')
+        );
+        let cut = clause > 40 ? clause + 1 : window.lastIndexOf(' ');
         if (cut < 40) cut = MAX_LEN;
         result.push(remaining.slice(0, cut).trim());
         remaining = remaining.slice(cut).trim();
@@ -1216,24 +1222,45 @@
     synth.cancel();
   }
 
-  function startKeepAlive() {
-    // Some Chromium builds silently stop long utterances after ~15s of
-    // being "backgrounded"; nudging pause/resume periodically works around it.
-    stopKeepAlive();
-    keepAliveTimer = setInterval(() => {
-      if (synth.speaking && !synth.paused) {
-        synth.pause();
-        synth.resume();
+  // Speech engines drop utterances silently: Chrome cuts long ones off, mobile
+  // engines lose them on an audio-focus change, and in neither case is an
+  // end/error event guaranteed — which leaves playback dead with no way back.
+  // (The previous periodic pause()/resume() "keep alive" was itself a cause:
+  // landing mid-sentence, it dropped the utterance on some engines.)
+  // So don't trust the events alone — poll, and carry on where it stopped.
+  let utteranceSpoke = false; // did the current utterance actually start?
+  let silentTicks = 0;
+  let deadStarts = 0;
+
+  function startWatchdog() {
+    stopWatchdog();
+    watchdogTimer = setInterval(() => {
+      if (playbackState !== 'playing' || !activeUtterance) { silentTicks = 0; return; }
+      if (synth.speaking || synth.pending) { silentTicks = 0; return; }
+      // Engine reports nothing playing or queued while we believe we're
+      // mid-sentence. Allow a little startup lag before stepping in.
+      if (++silentTicks < 3) return;
+      silentTicks = 0;
+      if (!utteranceSpoke && ++deadStarts >= 3) {
+        stopSpeaking();
+        stopWatchdog();
+        setTransportState('idle');
+        setStatus('The speech engine stopped responding — press Engage to try again.', true);
+        return;
       }
-    }, 9000);
+      activeUtterance = null;
+      currentIndex++;
+      speakNext();
+    }, 500);
   }
-  function stopKeepAlive() {
-    if (keepAliveTimer) { clearInterval(keepAliveTimer); keepAliveTimer = null; }
+  function stopWatchdog() {
+    if (watchdogTimer) { clearInterval(watchdogTimer); watchdogTimer = null; }
+    silentTicks = 0;
   }
 
   function speakNext() {
     if (currentIndex >= chunks.length) {
-      if (liveScanActive || screenLiveActive) { setTransportState('idle'); stopKeepAlive(); return; }
+      if (liveScanActive || screenLiveActive) { setTransportState('idle'); stopWatchdog(); return; }
       finishReading();
       return;
     }
@@ -1254,15 +1281,22 @@
       currentIndex++;
       speakNext();
     };
-    utter.onstart = () => { if (utter === activeUtterance) highlightChunk(currentIndex); };
+    utter.onstart = () => {
+      if (utter !== activeUtterance) return;
+      utteranceSpoke = true;
+      deadStarts = 0;
+      highlightChunk(currentIndex);
+    };
     utter.onend = advance;
     utter.onerror = advance;
     activeUtterance = utter;
+    utteranceSpoke = false;
+    silentTicks = 0;
     synth.speak(utter);
   }
 
   function finishReading() {
-    stopKeepAlive();
+    stopWatchdog();
     setTransportState('idle');
     setStatus('Reading complete.');
     playChirp('stop');
@@ -1282,14 +1316,14 @@
     setTransportState('playing');
     setStatus('Reading…');
     playChirp('start');
-    startKeepAlive();
+    startWatchdog();
     speakNext();
   });
 
   pauseBtn.addEventListener('click', () => {
     if (playbackState !== 'playing') return;
     stopSpeaking();
-    stopKeepAlive();
+    stopWatchdog();
     setTransportState('paused');
     setStatus('Paused.');
   });
@@ -1298,7 +1332,7 @@
     if (playbackState !== 'paused') return;
     setTransportState('playing');
     setStatus('Reading…');
-    startKeepAlive();
+    startWatchdog();
     speakNext();
   });
 
@@ -1321,7 +1355,7 @@
     syncProgressMarks();
     setTransportState('playing');
     setStatus('Reading…');
-    startKeepAlive();
+    startWatchdog();
     speakNext();
   }
 
@@ -1333,7 +1367,7 @@
       stopSpeaking();
       currentIndex = chunks.length;
       syncProgressMarks();
-      stopKeepAlive();
+      stopWatchdog();
       setTransportState('idle');
       setStatus('Reached the end.');
       return;
