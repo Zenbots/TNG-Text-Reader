@@ -423,8 +423,10 @@
         <div id="readingView"><span class="placeholder">Awaiting input. Paste text, upload a PDF or image, or use the camera, then engage playback.</span></div>
         <div class="transport">
           <button class="btn btn-orange" id="playBtn">▶ Engage</button>
+          <button class="btn btn-outline" id="backBtn" disabled>◀◀ Back</button>
           <button class="btn btn-violet" id="pauseBtn" disabled>❚❚ Pause</button>
           <button class="btn btn-blue" id="resumeBtn" disabled>▶ Resume</button>
+          <button class="btn btn-outline" id="forwardBtn" disabled>Forward ▶▶</button>
         </div>
       </div>
     </section>
@@ -482,8 +484,10 @@
 
   const readingView = document.getElementById('readingView');
   const playBtn = document.getElementById('playBtn');
+  const backBtn = document.getElementById('backBtn');
   const pauseBtn = document.getElementById('pauseBtn');
   const resumeBtn = document.getElementById('resumeBtn');
+  const forwardBtn = document.getElementById('forwardBtn');
   const engineStatus = document.getElementById('engineStatus');
 
   const synth = window.speechSynthesis;
@@ -752,7 +756,7 @@
     seenLiveSentences = new Set();
     chunks = [];
     currentIndex = 0;
-    synth.cancel();
+    stopSpeaking();
     readingView.innerHTML = '';
     liveScanBtn.textContent = '■ Stop Live Scan';
     liveIndicator.classList.add('on');
@@ -821,6 +825,7 @@
     span.dataset.i = String(i);
     span.textContent = text;
     readingView.appendChild(span);
+    setTransportState(playbackState); // chunks just became non-empty — refresh Back/Forward
   }
 
   // ── Screen (share, drag-to-select a region, read whole screen or watch the box) ──
@@ -989,7 +994,7 @@
     seenScreenSentences = new Set();
     chunks = [];
     currentIndex = 0;
-    synth.cancel();
+    stopSpeaking();
     readingView.innerHTML = '';
     screenLiveScanBtn.textContent = '■ Stop Reading Box';
     screenLiveIndicator.classList.add('on');
@@ -1177,13 +1182,26 @@
   // re-speaks that same chunk from its start. Far more predictable than
   // fighting the native pause/resume implementation.
   let playbackState = 'idle'; // 'idle' | 'playing' | 'paused'
-  let expectingCancel = false; // true while we're deliberately cancelling mid-utterance
+  // Guard by utterance identity, not a global "expecting a cancel" flag:
+  // browsers disagree about what cancel() fires (Chrome an 'interrupted'
+  // error, WebKit an end, some both, some neither). Ignoring every event
+  // that isn't from the utterance we currently care about is correct in all
+  // of those cases — a stray second event can't advance the sentence, and a
+  // missing event can't leave a sticky flag that swallows the next real one.
+  let activeUtterance = null;
 
   function setTransportState(state) {
     playbackState = state;
     // Engage always stays enabled — it doubles as "start" and "restart".
     pauseBtn.disabled = state !== 'playing';
     resumeBtn.disabled = state !== 'paused';
+    backBtn.disabled = !chunks.length;
+    forwardBtn.disabled = !chunks.length;
+  }
+
+  function stopSpeaking() {
+    activeUtterance = null; // any events from the cancelled utterance are now ignored
+    synth.cancel();
   }
 
   function startKeepAlive() {
@@ -1218,17 +1236,16 @@
     utter.rate = Number(rateRange.value);
     utter.pitch = Number(pitchRange.value);
     utter.volume = Number(volRange.value);
-    utter.onstart = () => highlightChunk(currentIndex);
-    utter.onend = () => {
-      if (expectingCancel) { expectingCancel = false; return; }
+    const advance = () => {
+      if (utter !== activeUtterance) return; // stale/cancelled utterance
+      activeUtterance = null;
       currentIndex++;
       speakNext();
     };
-    utter.onerror = () => {
-      if (expectingCancel) { expectingCancel = false; return; }
-      currentIndex++;
-      speakNext();
-    };
+    utter.onstart = () => { if (utter === activeUtterance) highlightChunk(currentIndex); };
+    utter.onend = advance;
+    utter.onerror = advance;
+    activeUtterance = utter;
     synth.speak(utter);
   }
 
@@ -1245,8 +1262,7 @@
     if (!synth) { setStatus('Speech synthesis is not supported in this browser.', true); return; }
     if (liveScanActive) stopLiveScan();
     if (screenLiveActive) stopScreenLiveScan();
-    expectingCancel = true;
-    synth.cancel();
+    stopSpeaking();
     chunks = splitIntoSentences(text);
     if (!chunks.length) { setStatus('Nothing readable was found in that text.', true); return; }
     currentIndex = 0;
@@ -1260,8 +1276,7 @@
 
   pauseBtn.addEventListener('click', () => {
     if (playbackState !== 'playing') return;
-    expectingCancel = true;
-    synth.cancel();
+    stopSpeaking();
     stopKeepAlive();
     setTransportState('paused');
     setStatus('Paused.');
@@ -1274,6 +1289,28 @@
     startKeepAlive();
     speakNext();
   });
+
+  // Back/Forward step one sentence and carry on reading from there.
+  function jumpBy(delta) {
+    if (!chunks.length) { setStatus('There is nothing to skip through yet.', true); return; }
+    stopSpeaking();
+    const target = Math.max(0, currentIndex + delta);
+    if (target >= chunks.length) {
+      currentIndex = chunks.length;
+      stopKeepAlive();
+      setTransportState('idle');
+      setStatus('Reached the end.');
+      return;
+    }
+    currentIndex = target;
+    setTransportState('playing');
+    setStatus('Reading…');
+    startKeepAlive();
+    speakNext();
+  }
+
+  backBtn.addEventListener('click', () => jumpBy(-1));
+  forwardBtn.addEventListener('click', () => jumpBy(1));
 
   window.addEventListener('beforeunload', () => {
     if (synth) synth.cancel();
